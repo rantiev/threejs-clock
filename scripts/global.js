@@ -1,12 +1,62 @@
+var settings = {
+	cameraAngle: 45,
+	cameraDistanceNear: 10,
+	cameraDistanceFar: 10000,
+	cameraX: 0,
+	cameraY: 0,
+	cameraZ: 1400,
+	cameraLookX: 0,
+	cameraLookY: 0,
+	cameraLookZ: 0,
+
+	lightX: 80,
+	lightY: 80,
+	lightZ: 80,
+
+	lightShadowCameraSideWidth: 512,
+	lightShadowCameraDistanceFar: 400,
+	lightShadowDarkness: 0.4,
+	lightShadowBias:.0001,
+	lightShadowCameraVisible: false,
+
+	minutesNumber: 60,
+	radius: 100,
+	radiusSmall: 3,
+	radiusSmallest: 2,
+	depthWrapper: 10,
+	depthFace: 20,
+	bigRadius: 110,
+	lineLengthShortest: 10,
+	lineLengthShort: 20,
+	lineWidthShortest: 1,
+	lineWidthShort: 5,
+	lineWidthHandHour: 5,
+	lineWidthHandMinute: 5,
+	lineWidthHandSecond: 1,
+	spacing: 5,
+	spacingHand: 15,
+	handHourLength: 1,
+	handMinuteLength: 1,
+	handSecondLength: 1,
+	floorSideWidth: 300,
+	floorZ: -11,
+};
+
 var scene = new THREE.Scene();
-var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 10, 1000);
-camera.position.x = 0;
-camera.position.y = 0;
-camera.position.z = 100;
+var camera = new THREE.PerspectiveCamera(
+	settings.cameraAngle,
+	window.innerWidth / window.innerHeight,
+	settings.cameraDistanceNear,
+	settings.cameraDistanceFar
+);
+camera.position.x = settings.cameraX;
+camera.position.y = settings.cameraY;
+camera.position.z = settings.cameraZ;
+
 camera.lookAt({
-	x: 0,
-	y: 0,
-	z: 0
+	x: settings.cameraLookX,
+	y: settings.cameraLookY,
+	z: settings.cameraLookZ
 });
 
 var renderer = new THREE.WebGLRenderer();
@@ -16,43 +66,40 @@ renderer.shadowMapEnabled = true;
 renderer.shadowMapSoft = true;
 
 document.body.appendChild( renderer.domElement );
-/*
-scene.add(new THREE.AmbientLight(0xFFFFFF));*/
+
+var group = new THREE.Group();
+group.position.y = 50;
+scene.add( group );
 
 var light;
 
-light = new THREE.DirectionalLight(0xFFFFFF, 1.2);
-light.position.set(40, 40, 30);
-light.position.multiplyScalar(1.3);
+light = new THREE.DirectionalLight(0xAAAAFF);
+light.position.set(
+	settings.lightX,
+	settings.lightY,
+	settings.lightZ
+);
 
 light.castShadow = true;
-light.shadowCameraVisible = true;
+light.shadowCameraVisible = settings.lightShadowCameraVisible;
 
-light.shadowMapWidth = 512;
-light.shadowMapHeight = 512;
+light.shadowMapWidth = 2048;
+light.shadowMapHeight = 2048;
 
-var d = 100;
+light.shadowCameraLeft = -settings.lightShadowCameraSideWidth;
+light.shadowCameraRight = settings.lightShadowCameraSideWidth;
+light.shadowCameraTop = settings.lightShadowCameraSideWidth;
+light.shadowCameraBottom = -settings.lightShadowCameraSideWidth;
 
-light.shadowCameraLeft = -d;
-light.shadowCameraRight = d;
-light.shadowCameraTop = d;
-light.shadowCameraBottom = -d;
-
-light.shadowCameraFar = 400;
-light.shadowDarkness = 0.5;
+light.shadowCameraFar = settings.lightShadowCameraDistanceFar;
+light.shadowDarkness = settings.lightShadowDarkness;
+light.shadowBias = settings.lightShadowBias;
 
 scene.add(light);
 
-var minutesNumber = 60;
-
-var radius = 20;
-var shortLineLength = 2;
-var shortestLineLength = 1;
-var shortLinesSpacing = 1;
-
-var handHourLength = radius - 4;
-var handMinuteLength = radius - 2;
-var handSecondLength = radius - 1;
+settings.handHourLength = settings.radius - 40;
+settings.handMinuteLength = settings.radius - 20;
+settings.handSecondLength = settings.radius - 10;
 
 var materials = {
 	floor: new THREE.MeshPhongMaterial(
@@ -60,7 +107,8 @@ var materials = {
 			color: 0xEEEEEE,
 			shininess: 10,
 			specular: 0xfff8d9,
-			shading: THREE.FlatShading
+			shading: THREE.FlatShading,
+			side: THREE.DoubleSide
 		}
 	),
 	clock: new THREE.MeshPhongMaterial(
@@ -106,101 +154,110 @@ var materials = {
 };
 
 /* Floor  */
-var geometry = new THREE.PlaneGeometry( 80, 80, 1, 1 );
+var geometry = new THREE.PlaneGeometry( settings.floorSideWidth, settings.floorSideWidth, 1, 1 );
 var floor = new THREE.Mesh( geometry, materials.floor );
-floor.translateZ(-6);
+floor.translateZ(settings.floorZ);
 floor.receiveShadow = true;
-scene.add( floor );
+group.add( floor );
 
-var circleGeometry1 = new THREE.CylinderGeometry(radius + .5, radius + .5, 1, 360)
+var circleGeometry1 = new THREE.CylinderGeometry(settings.bigRadius, settings.bigRadius, settings.depthWrapper, 360)
 var circle1 = new THREE.Mesh( circleGeometry1, materials.clock );
-circle1.translateZ(-1);
+circle1.translateZ(0);
 circle1.rotateX(Math.PI / 2);
 circle1.castShadow = true;
-scene.add( circle1 );
+group.add( circle1 );
 
-var circleGeometry2 = new THREE.CylinderGeometry(radius, radius, 2, 360)
+var circleGeometry2 = new THREE.CylinderGeometry(settings.radius, settings.radius, settings.depthFace, 360)
 var material2 = new THREE.MeshBasicMaterial( { color: 0xffffff } );
 var circle2 = new THREE.Mesh( circleGeometry2, material2 );
-circle2.translateZ(-1);
+circle2.translateZ(0);
 circle2.rotateX(Math.PI / 2);
 circle2.castShadow = true;
 circle2.receiveShadow = true;
-scene.add( circle2 );
+group.add( circle2 );
 
-for (var i = 0; i < minutesNumber; i++) {
-
+for (var i = 0; i < settings.minutesNumber; i++) {
+	var lineGeometry = null;
+	var line = null;
 	var lineAngle = (6 * Math.PI * i) / 180;
 
-	var vector1 = new THREE.Vector3( 0, radius, 0 );
-	var vector2 = new THREE.Vector3( 0, radius + 1, 0 );
-
-	var lineGeometry1 = new THREE.Geometry();
-	lineGeometry1.vertices.push(
-		vector1,
-		vector2
-	);
-
-	var lineGeometry2 = new THREE.BoxGeometry( 1, shortLineLength, 1);
-
-	var lineGeometry3 = new THREE.BoxGeometry( 0.2, shortestLineLength, 1);
-
-	var line2 = new THREE.Mesh( lineGeometry2, materials.line );
-	//line2.castShadow = true;
-
-	var line3 = new THREE.Mesh( lineGeometry3, materials.line );
-	//line3.castShadow = true;
-
 	if(i % 5 === 0) {
-		scene.add( line2 );
-
-		line2.rotateZ(lineAngle);
-		line2.translateOnAxis(new THREE.Vector3( 0, 1, 0 ), radius - shortLineLength / 2 - shortLinesSpacing );
-
+		lineGeometry = new THREE.BoxGeometry( settings.lineWidthShort, settings.lineLengthShort, 1);
+		line = new THREE.Mesh( lineGeometry, materials.line );
+		line.rotateZ(lineAngle);
+		line.translateOnAxis(new THREE.Vector3( 0, 1, 0 ), settings.radius - settings.lineLengthShort / 2 - settings.spacing );
+		line.translateOnAxis(new THREE.Vector3( 0, 0, 1 ), settings.depthFace / 2 );
 	} else {
-		scene.add( line3 );
-
-		line3.rotateZ(lineAngle);
-		line3.translateOnAxis(new THREE.Vector3( 0, 1, 0 ), radius - shortestLineLength / 2 - shortLinesSpacing );
+		lineGeometry = new THREE.BoxGeometry( settings.lineWidthShortest, settings.lineLengthShortest, 1);
+		line = new THREE.Mesh( lineGeometry, materials.line );
+		line.rotateZ(lineAngle);
+		line.translateOnAxis(new THREE.Vector3( 0, 1, 0 ), settings.radius - settings.lineLengthShortest / 2 - settings.spacing );
+		line.translateOnAxis(new THREE.Vector3( 0, 0, 1 ), settings.depthFace / 2 );
 	}
+
+	line.castShadow = true;
+	line.receiveShadow = true;
+
+	group.add( line );
 
 }
 
-var boxGeometry3 = new THREE.BoxGeometry( 1, handHourLength, 1);
-var boxGeometry4 = new THREE.BoxGeometry( 1, handMinuteLength, 1);
-var boxGeometry5 = new THREE.BoxGeometry(.5, handSecondLength, 1);
+var boxGeometry3 = new THREE.BoxGeometry( settings.lineWidthHandHour, settings.handHourLength, 1);
+var boxGeometry4 = new THREE.BoxGeometry( settings.lineWidthHandMinute, settings.handMinuteLength, 1);
+var boxGeometry5 = new THREE.BoxGeometry( settings.lineWidthHandSecond, settings.handSecondLength, 1);
 
 var handHourParent = new THREE.Object3D();
 var handMinuteParent = new THREE.Object3D();
 var handSecondParent = new THREE.Object3D();
 
 var handHour = new THREE.Mesh( boxGeometry3, materials.handHour );
+handHour.castShadow = true;
+handHour.receiveShadow = true;
+
 var handMinute = new THREE.Mesh( boxGeometry4, materials.handMinute );
+handMinute.castShadow = true;
+handMinute.receiveShadow = true;
+
 var handSecond = new THREE.Mesh( boxGeometry5, materials.handSecond );
+handSecond.castShadow = true;
+handSecond.receiveShadow = true;
 
 handHourParent.add(handHour);
 handMinuteParent.add(handMinute);
 handSecondParent.add(handSecond);
 
-handHour.translateOnAxis(new THREE.Vector3( 0, 1, 0 ), handHourLength / 2 - 2 );
-handMinute.translateOnAxis(new THREE.Vector3( 0, 1, 0 ), handMinuteLength / 2 - 2 );
-handSecond.translateOnAxis(new THREE.Vector3( 0, 1, 0 ), handSecondLength / 2 - 2 );
+handHour.translateOnAxis(new THREE.Vector3( 0, 1, 0 ), settings.handHourLength / 2 - settings.spacingHand );
+handMinute.translateOnAxis(new THREE.Vector3( 0, 1, 0 ), settings.handMinuteLength / 2 - settings.spacingHand );
+handSecond.translateOnAxis(new THREE.Vector3( 0, 1, 0 ), settings.handSecondLength / 2 - settings.spacingHand );
 
-scene.add( handHourParent );
-scene.add( handMinuteParent );
-scene.add( handSecondParent );
+handHour.translateOnAxis(new THREE.Vector3( 0, 0, 1 ), settings.depthFace / 2 + 2 );
+handMinute.translateOnAxis(new THREE.Vector3( 0, 0, 1 ), settings.depthFace / 2 + 3 );
+handSecond.translateOnAxis(new THREE.Vector3( 0, 0, 1 ), settings.depthFace / 2 + 4 );
 
-var circleGeometry3 = new THREE.CircleGeometry(.5, 360 );
+group.add( handHourParent );
+group.add( handMinuteParent );
+group.add( handSecondParent );
+
+var circleGeometry3 = new THREE.CircleGeometry(settings.radiusSmall, 360 );
 var material3 = new THREE.MeshBasicMaterial( { color: 0xFF0000 } );
 var circle3 = new THREE.Mesh( circleGeometry3, material3 );
-circle3.position.z = 1;
-scene.add( circle3 );
+circle3.translateOnAxis(new THREE.Vector3( 0, 0, 1 ), settings.depthFace / 2 + 5 );
+group.add( circle3 );
 
-var circleGeometry4 = new THREE.CircleGeometry(.2, 360 );
+var circleGeometry4 = new THREE.CircleGeometry(settings.radiusSmallest, 360 );
 var material4 = new THREE.MeshBasicMaterial( { color: 0xFFFFFF } );
 var circle4 = new THREE.Mesh( circleGeometry4, material4 );
-circle4.position.z = 1;
-scene.add( circle4 );
+circle4.translateOnAxis(new THREE.Vector3( 0, 0, 1 ), settings.depthFace / 2 + 5 );
+group.add( circle4 );
+
+var mouseX = 0;
+var mouseXOnMouseDown = 0;
+
+var targetRotation = 0;
+var targetRotationOnMouseDown = 0;
+
+var windowHalfX = window.innerWidth / 2;
+var windowHalfY = window.innerHeight / 2;
 
 var timePassed = 0;
 
@@ -226,7 +283,33 @@ function render(time) {
 
 	}
 
+	group.rotation.y += ( targetRotation - group.rotation.y ) * 0.05;
 	renderer.render( scene, camera );
 }
 
 render();
+
+document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+
+function onDocumentMouseDown( event ) {
+	event.preventDefault();
+	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+	document.addEventListener( 'mouseup', onDocumentMouseUp, false );
+	document.addEventListener( 'mouseout', onDocumentMouseOut, false );
+	mouseXOnMouseDown = event.clientX - windowHalfX;
+	targetRotationOnMouseDown = targetRotation;
+}
+function onDocumentMouseMove( event ) {
+	mouseX = event.clientX - windowHalfX;
+	targetRotation = targetRotationOnMouseDown + ( mouseX - mouseXOnMouseDown ) * 0.02;
+}
+function onDocumentMouseUp( event ) {
+	document.removeEventListener( 'mousemove', onDocumentMouseMove, false );
+	document.removeEventListener( 'mouseup', onDocumentMouseUp, false );
+	document.removeEventListener( 'mouseout', onDocumentMouseOut, false );
+}
+function onDocumentMouseOut( event ) {
+	document.removeEventListener( 'mousemove', onDocumentMouseMove, false );
+	document.removeEventListener( 'mouseup', onDocumentMouseUp, false );
+	document.removeEventListener( 'mouseout', onDocumentMouseOut, false );
+}
