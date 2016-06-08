@@ -1,16 +1,48 @@
 var scene = new THREE.Scene();
-var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
-camera.position.z = 60;
+var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 10, 1000);
+camera.position.x = 0;
+camera.position.y = 0;
+camera.position.z = 100;
+camera.lookAt({
+	x: 0,
+	y: 0,
+	z: 0
+});
 
 var renderer = new THREE.WebGLRenderer();
-renderer.setSize( document.body.clientWidth, document.body.clientHeight );
+renderer.setSize( window.innerWidth, window.innerHeight );
+
+renderer.shadowMapEnabled = true;
+renderer.shadowMapSoft = true;
+
 document.body.appendChild( renderer.domElement );
+/*
+scene.add(new THREE.AmbientLight(0xFFFFFF));*/
 
-var directionalLight = new THREE.DirectionalLight( 0xFFFFFF, .9 );
-directionalLight.position.set( 20, 20, 22 );
-scene.add( directionalLight );
+var light;
 
-var hoursNumber = 12;
+light = new THREE.DirectionalLight(0xFFFFFF, 1.2);
+light.position.set(40, 40, 30);
+light.position.multiplyScalar(1.3);
+
+light.castShadow = true;
+light.shadowCameraVisible = true;
+
+light.shadowMapWidth = 512;
+light.shadowMapHeight = 512;
+
+var d = 100;
+
+light.shadowCameraLeft = -d;
+light.shadowCameraRight = d;
+light.shadowCameraTop = d;
+light.shadowCameraBottom = -d;
+
+light.shadowCameraFar = 400;
+light.shadowDarkness = 0.5;
+
+scene.add(light);
+
 var minutesNumber = 60;
 
 var radius = 20;
@@ -22,9 +54,15 @@ var handHourLength = radius - 4;
 var handMinuteLength = radius - 2;
 var handSecondLength = radius - 1;
 
-var circleGeometry1 = new THREE.CircleGeometry( radius + .5, 360 );
-
 var materials = {
+	floor: new THREE.MeshPhongMaterial(
+		{
+			color: 0xEEEEEE,
+			shininess: 10,
+			specular: 0xfff8d9,
+			shading: THREE.FlatShading
+		}
+	),
 	clock: new THREE.MeshPhongMaterial(
 		{
 			color: 0x8F8F8F,
@@ -67,13 +105,27 @@ var materials = {
 	)
 };
 
+/* Floor  */
+var geometry = new THREE.PlaneGeometry( 80, 80, 1, 1 );
+var floor = new THREE.Mesh( geometry, materials.floor );
+floor.translateZ(-6);
+floor.receiveShadow = true;
+scene.add( floor );
 
+var circleGeometry1 = new THREE.CylinderGeometry(radius + .5, radius + .5, 1, 360)
 var circle1 = new THREE.Mesh( circleGeometry1, materials.clock );
+circle1.translateZ(-1);
+circle1.rotateX(Math.PI / 2);
+circle1.castShadow = true;
 scene.add( circle1 );
 
-var circleGeometry2 = new THREE.CircleGeometry( radius, 360 );
+var circleGeometry2 = new THREE.CylinderGeometry(radius, radius, 2, 360)
 var material2 = new THREE.MeshBasicMaterial( { color: 0xffffff } );
 var circle2 = new THREE.Mesh( circleGeometry2, material2 );
+circle2.translateZ(-1);
+circle2.rotateX(Math.PI / 2);
+circle2.castShadow = true;
+circle2.receiveShadow = true;
 scene.add( circle2 );
 
 for (var i = 0; i < minutesNumber; i++) {
@@ -94,7 +146,10 @@ for (var i = 0; i < minutesNumber; i++) {
 	var lineGeometry3 = new THREE.BoxGeometry( 0.2, shortestLineLength, 1);
 
 	var line2 = new THREE.Mesh( lineGeometry2, materials.line );
+	//line2.castShadow = true;
+
 	var line3 = new THREE.Mesh( lineGeometry3, materials.line );
+	//line3.castShadow = true;
 
 	if(i % 5 === 0) {
 		scene.add( line2 );
