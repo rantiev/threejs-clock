@@ -4,7 +4,7 @@ var settings = {
 	cameraDistanceFar: 10000,
 	cameraX: 0,
 	cameraY: 0,
-	cameraZ: 1400,
+	cameraZ: 650,
 	cameraLookX: 0,
 	cameraLookY: 0,
 	cameraLookZ: 0,
@@ -23,6 +23,8 @@ var settings = {
 	radius: 100,
 	radiusSmall: 3,
 	radiusSmallest: 2,
+	radiusSun: 50,
+	radiusMoon: 10,
 	depthWrapper: 10,
 	depthFace: 20,
 	bigRadius: 110,
@@ -67,8 +69,20 @@ renderer.shadowMapSoft = true;
 
 document.body.appendChild( renderer.domElement );
 
+var sunTexture = THREE.ImageUtils.loadTexture('img/g2.jpg', {}, function () {
+	renderer.render(scene, camera);
+});
+
+var moonTexture = THREE.ImageUtils.loadTexture('img/ground1.jpg', {}, function () {
+	renderer.render(scene, camera);
+});
+
 var group = new THREE.Group();
 group.position.y = 50;
+
+var subGroup = new THREE.Group();
+group.add(subGroup);
+
 scene.add( group );
 
 var light;
@@ -150,7 +164,9 @@ var materials = {
 			specular: 0xfff8d9,
 			shading: THREE.FlatShading
 		}
-	)
+	),
+	sun: new THREE.MeshLambertMaterial({map: sunTexture}),
+	moon: new THREE.MeshLambertMaterial({map: moonTexture})
 };
 
 /* Floor  */
@@ -250,6 +266,20 @@ var circle4 = new THREE.Mesh( circleGeometry4, material4 );
 circle4.translateOnAxis(new THREE.Vector3( 0, 0, 1 ), settings.depthFace / 2 + 5 );
 group.add( circle4 );
 
+var sunGeometry = new THREE.SphereGeometry(settings.radiusSun, 64, 64 );
+var sun = new THREE.Mesh( sunGeometry, materials.sun );
+sun.translateOnAxis(new THREE.Vector3( 0, 1, 0 ), + settings.floorSideWidth / 2 + settings.radiusSun * 2 );
+sun.receiveShadow = true;
+sun.castShadow = true;
+subGroup.add( sun );
+
+var moonGeometry = new THREE.SphereGeometry(settings.radiusMoon, 64, 64 );
+var moon = new THREE.Mesh( moonGeometry, materials.moon );
+moon.translateOnAxis(new THREE.Vector3( 0, 1, 0 ), - settings.floorSideWidth / 2 - settings.radiusMoon );
+moon.receiveShadow = true;
+moon.castShadow = true;
+subGroup.add( moon );
+
 var mouseX = 0;
 var mouseXOnMouseDown = 0;
 
@@ -284,6 +314,11 @@ function render(time) {
 	}
 
 	group.rotation.y += ( targetRotation - group.rotation.y ) * 0.05;
+
+	sun.rotateOnAxis(new THREE.Vector3(0, 1, 0), Math.PI / 180);
+	moon.rotateOnAxis(new THREE.Vector3(0, 1, 0), Math.PI / 180);
+	subGroup.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 180);
+
 	renderer.render( scene, camera );
 }
 
