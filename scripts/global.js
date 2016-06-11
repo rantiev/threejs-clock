@@ -1,4 +1,5 @@
-var settings = {
+var settingsDefault = {
+	guiShow: true,
 	cameraAngle: 45,
 	cameraDistanceNear: 10,
 	cameraDistanceFar: 10000,
@@ -40,9 +41,29 @@ var settings = {
 	handHourLength: 1,
 	handMinuteLength: 1,
 	handSecondLength: 1,
+
+	floorShown: true,
 	floorSideWidth: 300,
 	floorZ: -11,
+
+	colorFloor: 0xEEEEEE,
+	colorClock: 0xFFFFFF,
+	colorClockWrapper: 0xEEEEEE,
+	handHourColor: 0x000000,
+	handMinuteColor: 0x000000,
+	handSecondColor: 0xFF0000,
 };
+var settings = {};
+
+settingsDefault.handHourLength = settingsDefault.radius - 40;
+settingsDefault.handMinuteLength = settingsDefault.radius - 20;
+settingsDefault.handSecondLength = settingsDefault.radius - 10;
+
+for (var prop in settingsDefault) {
+	if (settingsDefault.hasOwnProperty(prop)) {
+		settings[prop] = settingsDefault[prop];
+	}
+}
 
 var scene = new THREE.Scene();
 var camera = new THREE.PerspectiveCamera(
@@ -111,10 +132,6 @@ light.shadowBias = settings.lightShadowBias;
 
 scene.add(light);
 
-settings.handHourLength = settings.radius - 40;
-settings.handMinuteLength = settings.radius - 20;
-settings.handSecondLength = settings.radius - 10;
-
 var materials = {
 	floor: new THREE.MeshPhongMaterial(
 		{
@@ -125,9 +142,17 @@ var materials = {
 			side: THREE.DoubleSide
 		}
 	),
+	clockWrapper: new THREE.MeshPhongMaterial(
+		{
+			color: settings.colorClockWrapper,
+			shininess: 10,
+			specular: 0xfff8d9,
+			shading: THREE.FlatShading
+		}
+	),
 	clock: new THREE.MeshPhongMaterial(
 		{
-			color: 0x8F8F8F,
+			color: settings.colorClock,
 			shininess: 10,
 			specular: 0xfff8d9,
 			shading: THREE.FlatShading
@@ -176,47 +201,54 @@ floor.translateZ(settings.floorZ);
 floor.receiveShadow = true;
 group.add( floor );
 
-var circleGeometry1 = new THREE.CylinderGeometry(settings.bigRadius, settings.bigRadius, settings.depthWrapper, 360)
-var circle1 = new THREE.Mesh( circleGeometry1, materials.clock );
-circle1.translateZ(0);
-circle1.rotateX(Math.PI / 2);
-circle1.castShadow = true;
-group.add( circle1 );
+var clockWrapperGeometry = new THREE.CylinderGeometry(settings.bigRadius, settings.bigRadius, settings.depthWrapper, 360)
+var clockWrapper = new THREE.Mesh( clockWrapperGeometry, materials.clockWrapper );
+clockWrapper.translateZ(0);
+clockWrapper.rotateX(Math.PI / 2);
+clockWrapper.castShadow = true;
+group.add( clockWrapper );
 
-var circleGeometry2 = new THREE.CylinderGeometry(settings.radius, settings.radius, settings.depthFace, 360)
-var material2 = new THREE.MeshBasicMaterial( { color: 0xffffff } );
-var circle2 = new THREE.Mesh( circleGeometry2, material2 );
-circle2.translateZ(0);
-circle2.rotateX(Math.PI / 2);
-circle2.castShadow = true;
-circle2.receiveShadow = true;
-group.add( circle2 );
+var clockGeometry = new THREE.CylinderGeometry(settings.radius, settings.radius, settings.depthFace, 360)
+var clock = new THREE.Mesh( clockGeometry, materials.clock );
+clock.translateZ(0);
+clock.rotateX(Math.PI / 2);
+clock.castShadow = true;
+clock.receiveShadow = true;
+group.add( clock );
+
+var shortLines = [];
 
 for (var i = 0; i < settings.minutesNumber; i++) {
 	var lineGeometry = null;
 	var line = null;
+	var lineParent = new THREE.Group();
 	var lineAngle = (6 * Math.PI * i) / 180;
+
+	lineParent.rotateZ(lineAngle);
 
 	if(i % 5 === 0) {
 		lineGeometry = new THREE.BoxGeometry( settings.lineWidthShort, settings.lineLengthShort, 1);
 		line = new THREE.Mesh( lineGeometry, materials.line );
-		line.rotateZ(lineAngle);
 		line.translateOnAxis(new THREE.Vector3( 0, 1, 0 ), settings.radius - settings.lineLengthShort / 2 - settings.spacing );
 		line.translateOnAxis(new THREE.Vector3( 0, 0, 1 ), settings.depthFace / 2 );
 	} else {
 		lineGeometry = new THREE.BoxGeometry( settings.lineWidthShortest, settings.lineLengthShortest, 1);
 		line = new THREE.Mesh( lineGeometry, materials.line );
-		line.rotateZ(lineAngle);
 		line.translateOnAxis(new THREE.Vector3( 0, 1, 0 ), settings.radius - settings.lineLengthShortest / 2 - settings.spacing );
 		line.translateOnAxis(new THREE.Vector3( 0, 0, 1 ), settings.depthFace / 2 );
 	}
 
+	lineParent.add(line);
+
 	line.castShadow = true;
 	line.receiveShadow = true;
 
-	group.add( line );
+	shortLines.push(line);
+	group.add( lineParent );
 
 }
+
+settings.spacing = settings.radius - settings.lineLengthShort / 2 - settings.spacing;
 
 var boxGeometry3 = new THREE.BoxGeometry( settings.lineWidthHandHour, settings.handHourLength, 1);
 var boxGeometry4 = new THREE.BoxGeometry( settings.lineWidthHandMinute, settings.handMinuteLength, 1);
@@ -266,7 +298,7 @@ var circle4 = new THREE.Mesh( circleGeometry4, material4 );
 circle4.translateOnAxis(new THREE.Vector3( 0, 0, 1 ), settings.depthFace / 2 + 5 );
 group.add( circle4 );
 
-var sunGeometry = new THREE.SphereGeometry(settings.radiusSun, 64, 64 );
+/*var sunGeometry = new THREE.SphereGeometry(settings.radiusSun, 64, 64 );
 var sun = new THREE.Mesh( sunGeometry, materials.sun );
 sun.translateOnAxis(new THREE.Vector3( 0, 1, 0 ), + settings.floorSideWidth / 2 + settings.radiusSun * 2 );
 sun.receiveShadow = true;
@@ -278,7 +310,106 @@ var moon = new THREE.Mesh( moonGeometry, materials.moon );
 moon.translateOnAxis(new THREE.Vector3( 0, 1, 0 ), - settings.floorSideWidth / 2 - settings.radiusMoon );
 moon.receiveShadow = true;
 moon.castShadow = true;
-subGroup.add( moon );
+subGroup.add( moon );*/
+
+/////////
+// GUI //
+/////////
+
+if (settings.guiShow) {
+	var gui = new dat.GUI();
+
+	var guiFloorShown = gui
+		.add( settings, 'floorShown').name("Floor Shown")
+		.onChange(function () {
+			floor.visible = settings.floorShown;
+		});
+
+	var guiWrapperRadius = gui
+		.add( settings, 'bigRadius' ).min(40).max(400).step(0.1).name("Wrapper Radius")
+		.onChange(function () {
+			var newScale = settings.bigRadius / settingsDefault.bigRadius;
+			clockWrapper.scale.set(newScale, 1, newScale);
+		});
+
+	var guiMainRadius = gui
+		.add( settings, 'radius' ).min(40).max(300).step(0.1).name("Main Radius")
+		.onChange(function () {
+			var newScale = settings.radius / settingsDefault.radius;
+			clock.scale.set(newScale, 1, newScale);
+		});
+
+	var guiHandsLength = gui
+		.add( settings, 'handHourLength' ).min(20).max(150).step(0.1).name("Hands Length")
+		.onChange(function () {
+			var newScale = settings.handHourLength / settingsDefault.handHourLength;
+			handHour.scale.set(handHour.scale.x, newScale, handHour.scale.z);
+			handMinute.scale.set(handHour.scale.x, newScale, handHour.scale.z);
+			handSecond.scale.set(handHour.scale.x, newScale, handHour.scale.z);
+		});
+
+	var guiHandsWidth = gui
+		.add( settings, 'lineWidthHandHour' ).min(2).max(30).step(0.1).name("Hands Width")
+		.onChange(function () {
+			var newScale = settings.lineWidthHandHour / settingsDefault.lineWidthHandHour;
+			handHour.scale.set(newScale, handHour.scale.y, handHour.scale.z);
+			handMinute.scale.set(newScale, handHour.scale.y, handHour.scale.z);
+			handSecond.scale.set(newScale, handHour.scale.y, handHour.scale.z);
+		});
+
+	var guiFloorColor = gui
+		.addColor( settings, 'colorFloor' )
+		.onChange(function () {
+			materials.floor.color.setHex(settings.colorFloor)
+			materials.floor.needsUpdate = 1;
+		});
+
+	var guiClockWrapperColor = gui
+		.addColor( settings, 'colorClockWrapper' )
+		.onChange(function () {
+			materials.clockWrapper.color.setHex(settings.colorClockWrapper)
+			materials.clockWrapper.needsUpdate = 1;
+		});
+
+	var guiClockColor = gui
+		.addColor( settings, 'colorClock' )
+		.onChange(function () {
+			materials.clock.color.setHex(settings.colorClock)
+			materials.clock.needsUpdate = 1;
+		});
+
+
+	var guiHandHourColor = gui
+		.addColor( settings, 'handHourColor' )
+		.onChange(function () {
+			materials.handHour.color.setHex(settings.handHourColor)
+			materials.handHour.needsUpdate = 1;
+		});
+
+	var guiHandMinuteColor = gui
+		.addColor( settings, 'handMinuteColor' )
+		.onChange(function () {
+			materials.handMinute.color.setHex(settings.handMinuteColor)
+			materials.handMinute.needsUpdate = 1;
+		});
+
+	var guiHandSecondColor = gui
+		.addColor( settings, 'handSecondColor' )
+		.onChange(function () {
+			materials.handSecond.color.setHex(settings.handSecondColor)
+			materials.handSecond.needsUpdate = 1;
+		});
+
+	var guiPointsSpacing = gui
+		.add( settings, 'spacing' ).min(-10).max(200).step(1).name("Points Spacing")
+		.onChange(function () {
+			shortLines.forEach(function (item, i) {
+				var offset = settings.spacing - item.position.y;
+				item.translateY(offset);
+			});
+		});
+}
+
 
 var mouseX = 0;
 var mouseXOnMouseDown = 0;
@@ -315,8 +446,8 @@ function render(time) {
 
 	group.rotation.y += ( targetRotation - group.rotation.y ) * 0.05;
 
-	sun.rotateOnAxis(new THREE.Vector3(0, 1, 0), Math.PI / 180);
-	moon.rotateOnAxis(new THREE.Vector3(0, 1, 0), Math.PI / 180);
+/*	sun.rotateOnAxis(new THREE.Vector3(0, 1, 0), Math.PI / 180);
+	moon.rotateOnAxis(new THREE.Vector3(0, 1, 0), Math.PI / 180);*/
 	subGroup.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / 180);
 
 	renderer.render( scene, camera );
