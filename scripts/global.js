@@ -10,6 +10,9 @@ var settingsDefault = {
 	cameraLookY: 0,
 	cameraLookZ: 0,
 
+
+	lightType: 'ambient',
+
 	lightX: 80,
 	lightY: 80,
 	lightZ: 80,
@@ -46,12 +49,18 @@ var settingsDefault = {
 	floorSideWidth: 300,
 	floorZ: -11,
 
-	colorFloor: 0xEEEEEE,
+	colorFloor: 0x000000,
 	colorClock: 0xFFFFFF,
-	colorClockWrapper: 0xEEEEEE,
+	colorClockWrapper: 0xAAAAAA,
+	lineColor: 0x000000,
+	lineShortColor: 0x000000,
+	handHourColor: 0x000000,
 	handHourColor: 0x000000,
 	handMinuteColor: 0x000000,
 	handSecondColor: 0xFF0000,
+	handSecondCircleColor: 0xFF0000,
+
+	spindleColor: 0xFFFFFF
 };
 var settings = {};
 
@@ -106,9 +115,12 @@ group.add(subGroup);
 
 scene.add( group );
 
-var light;
+var lightAmbient;
+lightAmbient = new THREE.AmbientLight(0xFFFFFF);
+scene.add(lightAmbient);
 
-light = new THREE.DirectionalLight(0xAAAAFF);
+var light;
+light = new THREE.DirectionalLight(0xFFFFFF, 0.9);
 light.position.set(
 	settings.lightX,
 	settings.lightY,
@@ -132,12 +144,19 @@ light.shadowBias = settings.lightShadowBias;
 
 scene.add(light);
 
+if(settings.lightType === 'ambient') {
+	lightAmbient.visible = true;
+	light.visible = false;
+} else {
+	lightAmbient.visible = false;
+	light.visible = true;
+}
+
 var materials = {
 	floor: new THREE.MeshPhongMaterial(
 		{
-			color: 0xEEEEEE,
+			color: settings.colorFloor,
 			shininess: 10,
-			specular: 0xfff8d9,
 			shading: THREE.FlatShading,
 			side: THREE.DoubleSide
 		}
@@ -146,7 +165,6 @@ var materials = {
 		{
 			color: settings.colorClockWrapper,
 			shininess: 10,
-			specular: 0xfff8d9,
 			shading: THREE.FlatShading
 		}
 	),
@@ -154,39 +172,55 @@ var materials = {
 		{
 			color: settings.colorClock,
 			shininess: 10,
-			specular: 0xfff8d9,
 			shading: THREE.FlatShading
 		}
 	),
 	line: new THREE.MeshPhongMaterial(
 		{
-			color: 0x000000,
+			color: settings.lineColor,
 			shininess: 10,
-			specular: 0xfff8d9,
+			shading: THREE.FlatShading
+		}
+	),
+	lineShort: new THREE.MeshPhongMaterial(
+		{
+			color: settings.lineShortColor,
+			shininess: 10,
 			shading: THREE.FlatShading
 		}
 	),
 	handHour: new THREE.MeshPhongMaterial(
 		{
-			color: 0x000000,
+			color: settings.handHourColor,
 			shininess: 10,
-			specular: 0xfff8d9,
 			shading: THREE.FlatShading
 		}
 	),
 	handMinute: new THREE.MeshPhongMaterial(
 		{
-			color: 0x000000,
+			color: settings.handMinuteColor,
 			shininess: 10,
-			specular: 0xfff8d9,
 			shading: THREE.FlatShading
 		}
 	),
 	handSecond: new THREE.MeshPhongMaterial(
 		{
-			color: 0xff0000,
+			color: settings.handSecondColor,
 			shininess: 10,
-			specular: 0xfff8d9,
+			shading: THREE.FlatShading
+		}
+	),
+	handSecondCircle: new THREE.MeshPhongMaterial(
+		{
+			color: settings.handSecondCircleColor,
+			shininess: 10,
+			shading: THREE.FlatShading
+		}
+	),
+	spindle: new THREE.MeshPhongMaterial(
+		{
+			color: settings.spindleColor,
+			shininess: 10,
 			shading: THREE.FlatShading
 		}
 	),
@@ -233,7 +267,7 @@ for (var i = 0; i < settings.minutesNumber; i++) {
 		line.translateOnAxis(new THREE.Vector3( 0, 0, 1 ), settings.depthFace / 2 );
 	} else {
 		lineGeometry = new THREE.BoxGeometry( settings.lineWidthShortest, settings.lineLengthShortest, 1);
-		line = new THREE.Mesh( lineGeometry, materials.line );
+		line = new THREE.Mesh( lineGeometry, materials.lineShort );
 		line.translateOnAxis(new THREE.Vector3( 0, 1, 0 ), settings.radius - settings.lineLengthShortest / 2 - settings.spacing );
 		line.translateOnAxis(new THREE.Vector3( 0, 0, 1 ), settings.depthFace / 2 );
 	}
@@ -287,14 +321,12 @@ group.add( handMinuteParent );
 group.add( handSecondParent );
 
 var circleGeometry3 = new THREE.CircleGeometry(settings.radiusSmall, 360 );
-var material3 = new THREE.MeshBasicMaterial( { color: 0xFF0000 } );
-var circle3 = new THREE.Mesh( circleGeometry3, material3 );
+var circle3 = new THREE.Mesh( circleGeometry3, materials.handSecondCircle);
 circle3.translateOnAxis(new THREE.Vector3( 0, 0, 1 ), settings.depthFace / 2 + 5 );
 group.add( circle3 );
 
 var circleGeometry4 = new THREE.CircleGeometry(settings.radiusSmallest, 360 );
-var material4 = new THREE.MeshBasicMaterial( { color: 0xFFFFFF } );
-var circle4 = new THREE.Mesh( circleGeometry4, material4 );
+var circle4 = new THREE.Mesh( circleGeometry4, materials.spindle);
 circle4.translateOnAxis(new THREE.Vector3( 0, 0, 1 ), settings.depthFace / 2 + 5 );
 group.add( circle4 );
 
@@ -318,6 +350,24 @@ subGroup.add( moon );*/
 
 if (settings.guiShow) {
 	var gui = new dat.GUI();
+
+	var guiLightType = gui
+		.add( settings, 'lightType', ['ambient', 'direct']).name("Light Type")
+		.onChange(function () {
+			if(settings.lightType === 'ambient') {
+				lightAmbient.visible = true;
+				light.visible = false;
+			} else {
+				lightAmbient.visible = false;
+				light.visible = true;
+			}
+
+			for (var material in materials) {
+				if (materials.hasOwnProperty(material)) {
+					materials[material].needsUpdate = true;
+				}
+			}
+		});
 
 	var guiFloorShown = gui
 		.add( settings, 'floorShown').name("Floor Shown")
@@ -357,49 +407,6 @@ if (settings.guiShow) {
 			handSecond.scale.set(newScale, handHour.scale.y, handHour.scale.z);
 		});
 
-	var guiFloorColor = gui
-		.addColor( settings, 'colorFloor' )
-		.onChange(function () {
-			materials.floor.color.setHex(settings.colorFloor)
-			materials.floor.needsUpdate = 1;
-		});
-
-	var guiClockWrapperColor = gui
-		.addColor( settings, 'colorClockWrapper' )
-		.onChange(function () {
-			materials.clockWrapper.color.setHex(settings.colorClockWrapper)
-			materials.clockWrapper.needsUpdate = 1;
-		});
-
-	var guiClockColor = gui
-		.addColor( settings, 'colorClock' )
-		.onChange(function () {
-			materials.clock.color.setHex(settings.colorClock)
-			materials.clock.needsUpdate = 1;
-		});
-
-
-	var guiHandHourColor = gui
-		.addColor( settings, 'handHourColor' )
-		.onChange(function () {
-			materials.handHour.color.setHex(settings.handHourColor)
-			materials.handHour.needsUpdate = 1;
-		});
-
-	var guiHandMinuteColor = gui
-		.addColor( settings, 'handMinuteColor' )
-		.onChange(function () {
-			materials.handMinute.color.setHex(settings.handMinuteColor)
-			materials.handMinute.needsUpdate = 1;
-		});
-
-	var guiHandSecondColor = gui
-		.addColor( settings, 'handSecondColor' )
-		.onChange(function () {
-			materials.handSecond.color.setHex(settings.handSecondColor)
-			materials.handSecond.needsUpdate = 1;
-		});
-
 	var guiPointsSpacing = gui
 		.add( settings, 'spacing' ).min(-10).max(200).step(1).name("Points Spacing")
 		.onChange(function () {
@@ -408,6 +415,49 @@ if (settings.guiShow) {
 				item.translateY(offset);
 			});
 		});
+
+	var guiFloorColor = gui
+		.addColor( settings, 'colorFloor' )
+		.onChange(handleColorChange(materials.floor.color));
+
+	var guiClockWrapperColor = gui
+		.addColor( settings, 'colorClockWrapper' )
+		.onChange(handleColorChange(materials.clockWrapper.color));
+
+	var guiClockColor = gui
+		.addColor( settings, 'colorClock' )
+		.onChange(handleColorChange(materials.clock.color));
+
+
+	var guiHandHourColor = gui
+		.addColor( settings, 'handHourColor' )
+		.onChange(function (value) {
+			handleColorChange(materials.handHour.color);
+		});
+
+	var guiHandMinuteColor = gui
+		.addColor( settings, 'handMinuteColor' )
+		.onChange(handleColorChange(materials.handMinute.color));
+
+	var guiHandSecondColor = gui
+		.addColor( settings, 'handSecondColor' )
+		.onChange(handleColorChange(materials.handSecond.color));
+
+	var guiHandSecondCircleColor = gui
+		.addColor( settings, 'handSecondCircleColor' )
+		.onChange(handleColorChange(materials.handSecondCircle.color));
+
+	var guiLineColor = gui
+		.addColor( settings, 'lineColor' )
+		.onChange(handleColorChange(materials.line.color))
+
+	var guiLineShortColor = gui
+		.addColor( settings, 'lineShortColor' )
+		.onChange(handleColorChange(materials.lineShort.color));
+
+	var guiSpindleColor = gui
+		.addColor( settings, 'spindleColor' )
+		.onChange(handleColorChange(materials.spindle.color));
 }
 
 
@@ -455,27 +505,55 @@ function render(time) {
 
 render();
 
-document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+var canvas = document.getElementsByTagName('canvas')[0];
+
+canvas.addEventListener( 'mousedown', onDocumentMouseDown, false );
 
 function onDocumentMouseDown( event ) {
+
 	event.preventDefault();
-	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
-	document.addEventListener( 'mouseup', onDocumentMouseUp, false );
-	document.addEventListener( 'mouseout', onDocumentMouseOut, false );
+	canvas.addEventListener( 'mousemove', onDocumentMouseMove, false );
+	canvas.addEventListener( 'mouseup', onDocumentMouseUp, false );
+	canvas.addEventListener( 'mouseout', onDocumentMouseOut, false );
 	mouseXOnMouseDown = event.clientX - windowHalfX;
 	targetRotationOnMouseDown = targetRotation;
+
 }
 function onDocumentMouseMove( event ) {
 	mouseX = event.clientX - windowHalfX;
 	targetRotation = targetRotationOnMouseDown + ( mouseX - mouseXOnMouseDown ) * 0.02;
 }
 function onDocumentMouseUp( event ) {
-	document.removeEventListener( 'mousemove', onDocumentMouseMove, false );
-	document.removeEventListener( 'mouseup', onDocumentMouseUp, false );
-	document.removeEventListener( 'mouseout', onDocumentMouseOut, false );
+	canvas.removeEventListener( 'mousemove', onDocumentMouseMove, false );
+	canvas.removeEventListener( 'mouseup', onDocumentMouseUp, false );
+	canvas.removeEventListener( 'mouseout', onDocumentMouseOut, false );
 }
 function onDocumentMouseOut( event ) {
-	document.removeEventListener( 'mousemove', onDocumentMouseMove, false );
-	document.removeEventListener( 'mouseup', onDocumentMouseUp, false );
-	document.removeEventListener( 'mouseout', onDocumentMouseOut, false );
+	canvas.removeEventListener( 'mousemove', onDocumentMouseMove, false );
+	canvas.removeEventListener( 'mouseup', onDocumentMouseUp, false );
+	canvas.removeEventListener( 'mouseout', onDocumentMouseOut, false );
+}
+
+function handleColorChange ( color ) {
+
+	return function ( value ){
+
+		if (typeof value === "string") {
+
+			value = value.replace('#', '0x');
+
+		}
+
+		color.setHex( value );
+
+	};
+
+}
+
+function hexToRgb (hex) {
+	if (hex.length !== 7 || hex.indexOf('#') < 0) {
+		return '000000';
+	}
+
+	return '' + parseInt(hex.slice(1,3), 16) + parseInt(hex.slice(3,5), 16) + parseInt(hex.slice(5), 16);
 }
